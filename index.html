@@ -689,29 +689,8 @@
         const DISCOURSE_API_KEY = '41dd1f8e6b732554a521993b042b23555b130b2d4929f3cc559b2f903303ae83';
         const DISCOURSE_URL = 'https://forum.thesizzle.com.au';
         const DISCOURSE_USERNAME = 'cameronwilson'; 
-        const DISCOURSE_CATEGORY_ID = 3; 
+        const DISCOURSE_CATEGORY_ID = 7; 
         const PROXY_URL = 'https://corsproxy.io/?';
-
-        // Helper functions for themes
-        function setMode(mode) {
-            const html = document.documentElement;
-            html.classList.remove('dark', 'midnight', 'latte', 'dracula', 'matrix');
-            if (mode !== 'light') html.classList.add(mode);
-            localStorage.setItem('themeMode', mode);
-        }
-
-        function setFont(fontClass) {
-            document.body.classList.remove('font-modern', 'font-editorial', 'font-terminal');
-            document.body.classList.add(fontClass);
-            localStorage.setItem('themeFont', fontClass);
-        }
-
-        function setAccent(accentClass) {
-            const html = document.documentElement;
-            html.classList.remove('accent-pink', 'accent-teal', 'accent-orange', 'accent-purple', 'accent-green');
-            if (accentClass) html.classList.add(accentClass);
-            localStorage.setItem('themeAccent', accentClass);
-        }
 
         // Global function for RTE formatting
         function formatDoc(cmd, value = null) {
