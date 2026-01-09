@@ -1,0 +1,1422 @@
+<!DOCTYPE html>
+<html lang="en" class="h-full bg-slate-950">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>The Sizzle Builder</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <!-- HTML2Canvas for Image Generation -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;900&family=Merriweather:wght@400;700&family=Fira+Code:wght@400;600&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        primary: 'var(--color-primary)',
+                        'primary-hover': 'var(--color-primary-hover)',
+                        bg: 'var(--color-bg)',
+                        surface: 'var(--color-surface)',
+                        border: 'var(--color-border)',
+                        text: 'var(--color-text)',
+                        'text-muted': 'var(--color-text-muted)',
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body { transition: background-color 0.3s, color 0.3s; }
+        
+        /* Font Families */
+        body.font-modern { font-family: 'Inter', sans-serif; }
+        body.font-editorial { font-family: 'Merriweather', serif; }
+        body.font-terminal { font-family: 'Fira Code', monospace; }
+
+        /* CSS Variables for Themes */
+        :root {
+            /* Default Light Theme */
+            --color-bg: #f3f4f6; /* gray-100 */
+            --color-surface: #ffffff; /* white */
+            --color-border: #e5e7eb; /* gray-200 */
+            --color-text: #111827; /* gray-900 */
+            --color-text-muted: #6b7280; /* gray-500 */
+            
+            /* Default Accent (Indigo) */
+            --color-primary: #4f46e5;
+            --color-primary-hover: #4338ca;
+        }
+
+        /* Dark Theme Override */
+        html.dark {
+            --color-bg: #020617; /* slate-950 */
+            --color-surface: #0f172a; /* slate-900 */
+            --color-border: #1e293b; /* slate-800 */
+            --color-text: #e2e8f0; /* slate-200 */
+            --color-text-muted: #94a3b8; /* slate-400 */
+        }
+        
+        /* Midnight Theme Override */
+        html.midnight {
+            --color-bg: #000000;
+            --color-surface: #111111;
+            --color-border: #333333;
+            --color-text: #ffffff;
+            --color-text-muted: #888888;
+        }
+
+        /* Latte Theme (Warm Light) */
+        html.latte {
+            --color-bg: #eff1f5;
+            --color-surface: #e6e9ef;
+            --color-border: #ccd0da;
+            --color-text: #4c4f69;
+            --color-text-muted: #6c6f85;
+        }
+
+        /* Dracula Theme (Cool Dark) */
+        html.dracula {
+            --color-bg: #282a36;
+            --color-surface: #44475a;
+            --color-border: #6272a4;
+            --color-text: #f8f8f2;
+            --color-text-muted: #bfbfbf;
+        }
+        
+        /* Matrix Theme */
+        html.matrix {
+            --color-bg: #000000;
+            --color-surface: #050505;
+            --color-border: #003b00;
+            --color-text: #00ff41;
+            --color-text-muted: #008f11;
+        }
+
+        /* Accent Colors Classes (applied to html tag via JS) */
+        html.accent-pink { --color-primary: #db2777; --color-primary-hover: #be185d; }
+        html.accent-orange { --color-primary: #ea580c; --color-primary-hover: #c2410c; }
+        html.accent-teal { --color-primary: #0d9488; --color-primary-hover: #0f766e; }
+        html.accent-purple { --color-primary: #9333ea; --color-primary-hover: #7e22ce; }
+        html.accent-green { --color-primary: #16a34a; --color-primary-hover: #15803d; }
+
+        /* Utility Classes using Vars */
+        .theme-bg { background-color: var(--color-bg); }
+        .theme-surface { background-color: var(--color-surface); }
+        .theme-border { border-color: var(--color-border); }
+        .theme-text { color: var(--color-text); }
+        .theme-text-muted { color: var(--color-text-muted); }
+        .theme-btn { background-color: var(--color-primary); color: white; }
+        .theme-btn:hover { background-color: var(--color-primary-hover); }
+
+        .spinner {
+            border: 3px solid rgba(255, 255, 255, .3);
+            border-left-color: #fff;
+            border-radius: 50%;
+            width: 18px;
+            height: 18px;
+            animation: spin 1s linear infinite;
+            display: none;
+        }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        .loading .spinner { display: inline-block; }
+        .loading .button-text { display: none; }
+        
+        .tab-content { display: none; }
+        .tab-content.active { display: block; }
+        
+        .tab-btn.active {
+            border-bottom-color: var(--color-primary);
+            color: var(--color-primary);
+            background-color: rgba(128, 128, 128, 0.1);
+        }
+
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+        
+        input:focus, textarea:focus, [contenteditable]:focus {
+            box-shadow: 0 0 0 2px var(--color-primary);
+            outline: none;
+        }
+
+        /* Rich Text Editor Styling */
+        .rte-editor {
+            min-height: 150px;
+            padding: 12px;
+            background-color: var(--color-surface);
+            border: 1px solid var(--color-border);
+            border-radius: 0.5rem;
+            color: var(--color-text);
+            font-size: 0.875rem;
+            line-height: 1.5;
+        }
+        
+        /* Make preview in Leftovers look like RTE */
+        #links-au-preview, #links-row-preview {
+            background-color: var(--color-surface);
+            border: 1px solid var(--color-border);
+            color: var(--color-text);
+            min-height: 16rem; 
+        }
+
+        .rte-toolbar {
+            display: flex;
+            gap: 0.5rem;
+            margin-bottom: 0.5rem;
+            padding: 0.25rem;
+            background-color: var(--color-bg);
+            border-radius: 0.375rem;
+            border: 1px solid var(--color-border);
+        }
+
+        .rte-btn {
+            padding: 0.25rem 0.5rem;
+            border-radius: 0.25rem;
+            font-size: 0.75rem;
+            font-weight: 600;
+            color: var(--color-text-muted);
+            transition: all 0.2s;
+        }
+
+        .rte-btn:hover {
+            background-color: var(--color-surface);
+            color: var(--color-primary);
+        }
+
+        /* Preview & Rich Text Styles */
+        .newsletter-preview, .rich-text-output {
+            background-color: white;
+            color: black;
+            font-family: Arial, sans-serif;
+            line-height: 1.5;
+            text-align: left;
+        }
+        .newsletter-preview h1, .rich-text-output h1 { font-size: 24pt; font-weight: bold; margin-bottom: 10px; }
+        .newsletter-preview h2.subtitle, .rich-text-output h2.subtitle { font-size: 16pt; font-weight: normal; color: #444; margin-top: 0; margin-bottom: 30px; }
+        .newsletter-preview h3, .rich-text-output h3 { font-size: 14pt; font-weight: bold; margin-top: 15px; margin-bottom: 5px; }
+        .newsletter-preview h4, .rich-text-output h4 { font-size: 12pt; font-weight: bold; margin-top: 20px; margin-bottom: 5px; }
+        .newsletter-preview p, .rich-text-output p { margin-bottom: 15px; }
+        .newsletter-preview a, .rich-text-output a { color: #007bff; text-decoration: underline; }
+        .newsletter-preview hr, .rich-text-output hr { border: 0; border-top: 1px solid #eee; margin: 20px 0; }
+        /* Style list items specifically */
+        .newsletter-preview ul, .rich-text-output ul, .rte-editor ul { list-style-type: disc; padding-left: 20px; margin-bottom: 15px; }
+        .newsletter-preview li, .rich-text-output li, .rte-editor li { margin-bottom: 5px; }
+
+        /* Image styling in RTE/Preview */
+        .rte-editor img, .newsletter-preview img, .rich-text-output img { max-width: 100%; height: auto; margin: 10px 0; display: block; }
+
+        .link-row:hover .remove-link { opacity: 1; }
+        .remove-link { opacity: 0; transition: opacity 0.2s; }
+        
+        .animate-spin-once {
+            animation: spin 1s linear;
+        }
+
+        /* Ghost Input Styles for Character Limits */
+        .ghost-input {
+            color: transparent;
+        }
+        .ghost-input::placeholder {
+            color: var(--color-text-muted);
+        }
+        
+        /* Status Indicator Styling */
+        .post-status {
+            font-size: 0.75rem;
+            margin-top: 0.5rem;
+            color: #4ade80; /* green-400 */
+            display: flex;
+            align-items: center;
+            gap: 0.25rem;
+        }
+        .post-status a {
+            text-decoration: underline;
+        }
+
+        /* Theme Dropdown */
+        .theme-dropdown {
+            display: none;
+            position: absolute;
+            right: 0;
+            top: 100%;
+            margin-top: 0.5rem;
+            width: 14rem;
+            background-color: var(--color-surface);
+            border: 1px solid var(--color-border);
+            border-radius: 0.5rem;
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+            z-index: 50;
+            padding: 0.5rem;
+        }
+        .theme-dropdown.show { display: block; }
+        
+        .theme-section { margin-bottom: 0.5rem; border-bottom: 1px solid var(--color-border); padding-bottom: 0.5rem; }
+        .theme-section:last-child { margin-bottom: 0; border-bottom: none; padding-bottom: 0; }
+        .theme-section-title { font-size: 0.7rem; font-weight: bold; text-transform: uppercase; color: var(--color-text-muted); margin-bottom: 0.25rem; padding-left: 0.5rem; }
+        .theme-item { width: 100%; text-align: left; padding: 0.4rem 0.5rem; border-radius: 0.25rem; font-size: 0.875rem; color: var(--color-text); display: flex; align-items: center; gap: 0.5rem; transition: background-color 0.2s; }
+        .theme-item:hover { background-color: rgba(128,128,128, 0.1); }
+    </style>
+</head>
+<body class="h-full theme-bg theme-text font-modern">
+    <div class="min-h-full flex flex-col">
+        <header class="theme-surface border-b theme-border sticky top-0 z-10">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex flex-col sm:flex-row justify-between items-center gap-4">
+                <div class="flex items-center gap-3">
+                    <div class="w-8 h-8 theme-btn rounded flex items-center justify-center font-bold">S</div>
+                    <h1 class="text-xl font-bold">The Sizzle Builder</h1>
+                </div>
+                <div class="flex items-center gap-4 text-sm">
+                    <span id="autosave-indicator" class="theme-text-muted italic">All changes saved</span>
+                    
+                    <button id="btn-backup" class="theme-text-muted hover:theme-text font-medium transition-colors border theme-border px-3 py-1 rounded hover:bg-gray-800/10">Backup</button>
+                    <button id="btn-restore" class="theme-text-muted hover:theme-text font-medium transition-colors border theme-border px-3 py-1 rounded hover:bg-gray-800/10">Restore</button>
+                    <input type="file" id="file-restore" accept=".json" class="hidden">
+                    
+                    <button id="btn-clear" class="text-red-400 hover:text-red-300 font-medium transition-colors ml-2">Clear All</button>
+
+                    <!-- Theme Toggle -->
+                    <div class="relative">
+                        <button id="btn-theme" class="theme-text-muted hover:theme-text font-medium transition-colors border theme-border px-3 py-1 rounded hover:bg-gray-800/10 flex items-center gap-1">
+                            🎨 Theme
+                        </button>
+                        <div id="theme-dropdown" class="theme-dropdown">
+                            
+                            <div class="theme-section">
+                                <div class="theme-section-title">Mode</div>
+                                <button class="theme-item" onclick="setMode('light')">☀️ Light</button>
+                                <button class="theme-item" onclick="setMode('dark')">🌙 Dark</button>
+                                <button class="theme-item" onclick="setMode('midnight')">🌑 Midnight</button>
+                                <button class="theme-item" onclick="setMode('latte')">☕ Latte</button>
+                                <button class="theme-item" onclick="setMode('dracula')">🧛 Dracula</button>
+                                <button class="theme-item" onclick="setMode('matrix')">💊 Matrix</button>
+                            </div>
+
+                            <div class="theme-section">
+                                <div class="theme-section-title">Font</div>
+                                <button class="theme-item" onclick="setFont('font-modern')"><span class="font-sans">Ag</span> Modern (Inter)</button>
+                                <button class="theme-item" onclick="setFont('font-editorial')"><span class="font-serif">Ag</span> Editorial</button>
+                                <button class="theme-item" onclick="setFont('font-terminal')"><span class="font-mono">Ag</span> Terminal</button>
+                            </div>
+                            
+                            <div class="theme-section">
+                                <div class="theme-section-title">Accent</div>
+                                <button class="theme-item" onclick="setAccent('')"><div class="w-3 h-3 rounded-full bg-indigo-600"></div> Indigo</button>
+                                <button class="theme-item" onclick="setAccent('accent-pink')"><div class="w-3 h-3 rounded-full bg-pink-600"></div> Sizzle Pink</button>
+                                <button class="theme-item" onclick="setAccent('accent-teal')"><div class="w-3 h-3 rounded-full bg-teal-600"></div> Teal</button>
+                                <button class="theme-item" onclick="setAccent('accent-orange')"><div class="w-3 h-3 rounded-full bg-orange-600"></div> Orange</button>
+                                <button class="theme-item" onclick="setAccent('accent-purple')"><div class="w-3 h-3 rounded-full bg-purple-600"></div> Purple</button>
+                                <button class="theme-item" onclick="setAccent('accent-green')"><div class="w-3 h-3 rounded-full bg-green-600"></div> Green</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                <nav class="flex overflow-x-auto no-scrollbar -mb-px" aria-label="Tabs">
+                    <button data-tab="tab-general" class="tab-btn active px-4 py-3 border-b-2 border-transparent text-sm font-medium theme-text-muted hover:theme-text hover:border-gray-400 whitespace-nowrap transition-colors">General</button>
+                    <button data-tab="tab-news" class="tab-btn px-4 py-3 border-b-2 border-transparent text-sm font-medium theme-text-muted hover:theme-text hover:border-gray-400 whitespace-nowrap transition-colors">The News</button>
+                    <button data-tab="tab-also" class="tab-btn px-4 py-3 border-b-2 border-transparent text-sm font-medium theme-text-muted hover:theme-text hover:border-gray-400 whitespace-nowrap transition-colors">Oh, Also</button>
+                    <button data-tab="tab-leftovers" class="tab-btn px-4 py-3 border-b-2 border-transparent text-sm font-medium theme-text-muted hover:theme-text hover:border-gray-400 whitespace-nowrap transition-colors">Leftovers</button>
+                    <button data-tab="tab-bargains" class="tab-btn px-4 py-3 border-b-2 border-transparent text-sm font-medium theme-text-muted hover:theme-text hover:border-gray-400 whitespace-nowrap transition-colors">Bargains</button>
+                    <button data-tab="tab-discourse" class="tab-btn px-4 py-3 border-b-2 border-transparent text-sm font-medium theme-text-muted hover:theme-text hover:border-gray-400 whitespace-nowrap transition-colors">Discourse</button>
+                    <button data-tab="tab-preview" class="tab-btn px-4 py-3 border-b-2 border-transparent text-sm font-medium theme-text-muted hover:theme-text hover:border-gray-400 whitespace-nowrap transition-colors">Preview</button>
+                    <button data-tab="tab-review" class="tab-btn px-4 py-3 border-b-2 border-transparent text-sm font-bold theme-text-muted hover:theme-text hover:border-gray-400 whitespace-nowrap transition-colors">Review & Send</button>
+                    <button data-tab="tab-instagram" class="tab-btn px-4 py-3 border-b-2 border-transparent text-sm font-bold theme-text-muted hover:theme-text hover:border-gray-400 whitespace-nowrap transition-colors">Instagram</button>
+                </nav>
+            </div>
+        </header>
+
+        <main class="flex-grow max-w-5xl mx-auto w-full px-4 sm:px-6 lg:px-8 py-8">
+            
+            <!-- Tab: General -->
+            <div id="tab-general" class="tab-content active space-y-6">
+                <div class="theme-surface p-6 rounded-xl shadow-sm border theme-border">
+                    <h2 class="text-lg font-semibold mb-4">General Information</h2>
+                    <div class="space-y-4">
+                        <div>
+                            <div class="flex justify-between items-center mb-1">
+                                <label class="block text-xs font-bold theme-text-muted uppercase">Subject Line</label>
+                                <span id="subject-counter" class="text-xs theme-text-muted font-mono transition-colors">0/70</span>
+                            </div>
+                            <div class="relative w-full theme-bg rounded-lg">
+                                <div id="subject-ghost" class="absolute inset-0 p-3 font-sans text-base whitespace-pre overflow-hidden pointer-events-none theme-text z-0" aria-hidden="true"></div>
+                                <input type="text" id="subject" placeholder="Newsletter Subject Line" class="ghost-input relative w-full p-3 bg-transparent border theme-border rounded-lg outline-none transition-all caret-current z-10">
+                            </div>
+                        </div>
+                        <div>
+                            <div class="flex justify-between items-center mb-1">
+                                <label class="block text-xs font-bold theme-text-muted uppercase">Preview Text</label>
+                                <span id="preview-counter" class="text-xs theme-text-muted font-mono transition-colors">0/150</span>
+                            </div>
+                            <div class="relative w-full theme-bg rounded-lg">
+                                <div id="preview-ghost" class="absolute inset-0 p-3 font-sans text-base whitespace-pre overflow-hidden pointer-events-none theme-text z-0" aria-hidden="true"></div>
+                                <input type="text" id="preview-text" placeholder="Email preview text (hidden in body)" class="ghost-input relative w-full p-3 bg-transparent border theme-border rounded-lg outline-none transition-all caret-current z-10">
+                            </div>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold theme-text-muted uppercase mb-2">Introduction</label>
+                            <div class="rte-toolbar">
+                                <button onclick="formatDoc('bold')" class="rte-btn">B</button>
+                                <button onclick="formatDoc('italic')" class="rte-btn">I</button>
+                                <button onclick="formatDoc('insertUnorderedList')" class="rte-btn">List</button>
+                                <button onclick="formatDoc('createLink')" class="rte-btn">Link</button>
+                                <button onclick="formatDoc('insertImage')" class="rte-btn">Image</button>
+                                <button onclick="formatDoc('unlink')" class="rte-btn">Unlink</button>
+                            </div>
+                            <div id="intro-text" contenteditable="true" class="rte-editor" data-placeholder="Write an intro here (optional)..."></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Tab: The News -->
+            <div id="tab-news" class="tab-content space-y-6">
+                <div class="theme-surface p-6 rounded-xl shadow-sm border theme-border space-y-8">
+                    <h2 class="text-lg font-semibold">The News Sections</h2>
+                    <div class="space-y-6">
+                        <div class="p-4 border theme-border rounded-lg theme-bg">
+                            <label class="block text-xs font-bold theme-text-muted uppercase mb-2">Topic 1</label>
+                            <input type="text" id="news-1-headline" placeholder="Headline" class="w-full p-3 mb-3 theme-surface border theme-border rounded-lg outline-none theme-text placeholder-gray-500">
+                            
+                            <div class="rte-toolbar">
+                                <button onclick="formatDoc('bold')" class="rte-btn">B</button>
+                                <button onclick="formatDoc('italic')" class="rte-btn">I</button>
+                                <button onclick="formatDoc('insertUnorderedList')" class="rte-btn">List</button>
+                                <button onclick="formatDoc('createLink')" class="rte-btn">Link</button>
+                                <button onclick="formatDoc('insertImage')" class="rte-btn">Image</button>
+                                <button onclick="formatDoc('unlink')" class="rte-btn">Unlink</button>
+                            </div>
+                            <div id="news-1-text" contenteditable="true" class="rte-editor mb-3" data-placeholder="Tell the story..."></div>
+                            
+                            <label class="block text-xs font-bold theme-text-muted uppercase mb-1 tracking-wider">The Sizzle commentary (optional)</label>
+                            <textarea id="news-1-sizzle" placeholder="Discuss in the Sizzle..." class="w-full p-3 theme-surface border theme-border rounded-lg h-20 outline-none theme-text text-sm placeholder-gray-500"></textarea>
+                            
+                            <div id="status-news-1" class="post-status"></div>
+                        </div>
+
+                        <div class="p-4 border theme-border rounded-lg theme-bg">
+                            <label class="block text-xs font-bold theme-text-muted uppercase mb-2">Topic 2</label>
+                            <input type="text" id="news-2-headline" placeholder="Headline" class="w-full p-3 mb-3 theme-surface border theme-border rounded-lg outline-none theme-text placeholder-gray-500">
+                            
+                            <div class="rte-toolbar">
+                                <button onclick="formatDoc('bold')" class="rte-btn">B</button>
+                                <button onclick="formatDoc('italic')" class="rte-btn">I</button>
+                                <button onclick="formatDoc('insertUnorderedList')" class="rte-btn">List</button>
+                                <button onclick="formatDoc('createLink')" class="rte-btn">Link</button>
+                                <button onclick="formatDoc('insertImage')" class="rte-btn">Image</button>
+                                <button onclick="formatDoc('unlink')" class="rte-btn">Unlink</button>
+                            </div>
+                            <div id="news-2-text" contenteditable="true" class="rte-editor mb-3" data-placeholder="Tell the story..."></div>
+
+                            <label class="block text-xs font-bold theme-text-muted uppercase mb-1 tracking-wider">The Sizzle commentary (optional)</label>
+                            <textarea id="news-2-sizzle" placeholder="Discuss in the Sizzle..." class="w-full p-3 theme-surface border theme-border rounded-lg h-20 outline-none theme-text text-sm placeholder-gray-500"></textarea>
+                            
+                            <div id="status-news-2" class="post-status"></div>
+                        </div>
+
+                        <div class="p-4 border theme-border rounded-lg theme-bg">
+                            <label class="block text-xs font-bold theme-text-muted uppercase mb-2">Topic 3</label>
+                            <input type="text" id="news-3-headline" placeholder="Headline" class="w-full p-3 mb-3 theme-surface border theme-border rounded-lg outline-none theme-text placeholder-gray-500">
+                            
+                            <div class="rte-toolbar">
+                                <button onclick="formatDoc('bold')" class="rte-btn">B</button>
+                                <button onclick="formatDoc('italic')" class="rte-btn">I</button>
+                                <button onclick="formatDoc('insertUnorderedList')" class="rte-btn">List</button>
+                                <button onclick="formatDoc('createLink')" class="rte-btn">Link</button>
+                                <button onclick="formatDoc('insertImage')" class="rte-btn">Image</button>
+                                <button onclick="formatDoc('unlink')" class="rte-btn">Unlink</button>
+                            </div>
+                            <div id="news-3-text" contenteditable="true" class="rte-editor mb-3" data-placeholder="Tell the story..."></div>
+
+                            <label class="block text-xs font-bold theme-text-muted uppercase mb-1 tracking-wider">The Sizzle commentary (optional)</label>
+                            <textarea id="news-3-sizzle" placeholder="Discuss in the Sizzle..." class="w-full p-3 theme-surface border theme-border rounded-lg h-20 outline-none theme-text text-sm placeholder-gray-500"></textarea>
+                            
+                            <div id="status-news-3" class="post-status"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Tab: Oh, Also -->
+            <div id="tab-also" class="tab-content space-y-6">
+                <div class="theme-surface p-6 rounded-xl shadow-sm border theme-border">
+                    <h2 class="text-lg font-semibold mb-4">Oh, Also Section</h2>
+                    <div class="space-y-4">
+                        <input type="text" id="oh-also-heading" placeholder="Section Heading" class="w-full p-3 theme-bg border theme-border rounded-lg outline-none theme-text placeholder-gray-500">
+                        
+                        <div class="rte-toolbar">
+                            <button onclick="formatDoc('bold')" class="rte-btn">B</button>
+                            <button onclick="formatDoc('italic')" class="rte-btn">I</button>
+                            <button onclick="formatDoc('insertUnorderedList')" class="rte-btn">List</button>
+                            <button onclick="formatDoc('createLink')" class="rte-btn">Link</button>
+                            <button onclick="formatDoc('insertImage')" class="rte-btn">Image</button>
+                            <button onclick="formatDoc('unlink')" class="rte-btn">Unlink</button>
+                        </div>
+                        <div id="oh-also-text" contenteditable="true" class="rte-editor" data-placeholder="Text content..."></div>
+                        <div id="status-oh-also" class="post-status"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Tab: Leftovers -->
+            <div id="tab-leftovers" class="tab-content space-y-6">
+                <div class="theme-surface p-6 rounded-xl shadow-sm border theme-border">
+                    <h2 class="text-lg font-semibold mb-4">Leftovers (Links)</h2>
+                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+                        <div class="flex flex-col gap-2">
+                            <label class="block text-xs font-bold theme-text-muted uppercase mb-1 tracking-wider">Australia Links</label>
+                            <div class="rte-toolbar">
+                                <button onclick="formatDoc('bold')" class="rte-btn">B</button>
+                                <button onclick="formatDoc('italic')" class="rte-btn">I</button>
+                                <button onclick="formatDoc('insertUnorderedList')" class="rte-btn">List</button>
+                                <button onclick="formatDoc('createLink')" class="rte-btn">Link</button>
+                                <button onclick="formatDoc('insertImage')" class="rte-btn">Image</button>
+                                <button onclick="formatDoc('unlink')" class="rte-btn">Unlink</button>
+                            </div>
+                            <div id="links-au-text" contenteditable="true" class="rte-editor rounded-lg p-3 overflow-y-auto text-sm min-h-[16rem]" data-placeholder="List Australia links here..."></div>
+                        </div>
+
+                        <div class="flex flex-col gap-2">
+                            <label class="block text-xs font-bold theme-text-muted uppercase mb-1 tracking-wider">Rest of World Links</label>
+                            <div class="rte-toolbar">
+                                <button onclick="formatDoc('bold')" class="rte-btn">B</button>
+                                <button onclick="formatDoc('italic')" class="rte-btn">I</button>
+                                <button onclick="formatDoc('insertUnorderedList')" class="rte-btn">List</button>
+                                <button onclick="formatDoc('createLink')" class="rte-btn">Link</button>
+                                <button onclick="formatDoc('insertImage')" class="rte-btn">Image</button>
+                                <button onclick="formatDoc('unlink')" class="rte-btn">Unlink</button>
+                            </div>
+                            <div id="links-row-text" contenteditable="true" class="rte-editor rounded-lg p-3 overflow-y-auto text-sm min-h-[16rem]" data-placeholder="List RoW links here..."></div>
+                        </div>
+                    </div>
+                    <div id="status-leftovers" class="post-status"></div>
+                </div>
+            </div>
+
+            <!-- Tab: Bargains -->
+            <div id="tab-bargains" class="tab-content space-y-6">
+                <div class="theme-surface p-6 rounded-xl shadow-sm border theme-border space-y-8">
+                    <h2 class="text-lg font-semibold">Bargains Links</h2>
+                    <div>
+                        <label class="block text-xs font-bold theme-text-muted uppercase mb-2 tracking-wider">Electrical & Electronics</label>
+                        <div class="rte-toolbar">
+                            <button onclick="formatDoc('bold')" class="rte-btn">B</button>
+                            <button onclick="formatDoc('italic')" class="rte-btn">I</button>
+                            <button onclick="formatDoc('insertUnorderedList')" class="rte-btn">List</button>
+                            <button onclick="formatDoc('createLink')" class="rte-btn">Link</button>
+                            <button onclick="formatDoc('insertImage')" class="rte-btn">Image</button>
+                            <button onclick="formatDoc('unlink')" class="rte-btn">Unlink</button>
+                        </div>
+                        <div id="bargains-electronics" contenteditable="true" class="rte-editor mb-3" data-placeholder="List bargains here..."></div>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold theme-text-muted uppercase mb-2 tracking-wider">Computing</label>
+                        <div class="rte-toolbar">
+                            <button onclick="formatDoc('bold')" class="rte-btn">B</button>
+                            <button onclick="formatDoc('italic')" class="rte-btn">I</button>
+                            <button onclick="formatDoc('insertUnorderedList')" class="rte-btn">List</button>
+                            <button onclick="formatDoc('createLink')" class="rte-btn">Link</button>
+                            <button onclick="formatDoc('insertImage')" class="rte-btn">Image</button>
+                            <button onclick="formatDoc('unlink')" class="rte-btn">Unlink</button>
+                        </div>
+                        <div id="bargains-computing" contenteditable="true" class="rte-editor mb-3" data-placeholder="List bargains here..."></div>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold theme-text-muted uppercase mb-2 tracking-wider">Mobile</label>
+                        <div class="rte-toolbar">
+                            <button onclick="formatDoc('bold')" class="rte-btn">B</button>
+                            <button onclick="formatDoc('italic')" class="rte-btn">I</button>
+                            <button onclick="formatDoc('insertUnorderedList')" class="rte-btn">List</button>
+                            <button onclick="formatDoc('createLink')" class="rte-btn">Link</button>
+                            <button onclick="formatDoc('insertImage')" class="rte-btn">Image</button>
+                            <button onclick="formatDoc('unlink')" class="rte-btn">Unlink</button>
+                        </div>
+                        <div id="bargains-mobile" contenteditable="true" class="rte-editor mb-3" data-placeholder="List bargains here..."></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Tab: Discourse -->
+            <div id="tab-discourse" class="tab-content space-y-6">
+                <div class="theme-surface p-6 rounded-xl shadow-sm border theme-border">
+                    <div class="flex justify-between items-center mb-6">
+                        <h2 class="text-lg font-semibold">Discourse Topic Previews</h2>
+                        <button id="btn-post-discourse" class="theme-btn font-bold py-2 px-6 rounded-lg shadow-lg transition flex justify-center items-center">
+                            <span class="spinner"></span>
+                            <span class="button-text">Post to Discourse</span>
+                        </button>
+                    </div>
+                    <div id="discourse-previews" class="space-y-6">
+                        <!-- Dynamic Previews Loaded Here -->
+                        <div class="text-center theme-text-muted italic py-8">Loading previews...</div>
+                    </div>
+                    <!-- Discourse Activity Log -->
+                    <div class="bg-black rounded-xl p-4 shadow-2xl border border-gray-800 mt-6">
+                        <div class="text-xs font-bold text-gray-500 uppercase mb-2 flex justify-between items-center">
+                            <span>Discourse Activity Log</span>
+                        </div>
+                        <div id="discourse-status-log" class="h-32 overflow-y-auto text-green-400 font-mono text-[10px] space-y-1"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Tab: Preview -->
+            <div id="tab-preview" class="tab-content space-y-6">
+                <div class="bg-white rounded-xl shadow-2xl overflow-hidden border border-slate-800 min-h-[700px] flex flex-col">
+                    <div class="bg-slate-100 p-3 border-b border-slate-200 flex items-center justify-between shrink-0">
+                        <div class="flex items-center gap-2">
+                            <div class="w-3 h-3 rounded-full bg-red-400"></div>
+                            <div class="w-3 h-3 rounded-full bg-yellow-400"></div>
+                            <div class="w-3 h-3 rounded-full bg-green-400"></div>
+                        </div>
+                        <span class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Email Client Preview</span>
+                        <div class="w-12"></div>
+                    </div>
+                    <div class="bg-white p-6 border-b border-slate-100 shrink-0">
+                        <div id="preview-subject-header" class="text-xl font-bold text-slate-900 mb-1">Subject Line...</div>
+                        <div class="flex items-center text-sm text-slate-500 gap-3">
+                            <div class="w-10 h-10 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-700 font-bold shrink-0">S</div>
+                            <div class="min-w-0">
+                                <div class="font-bold text-slate-700 truncate">The Sizzle <span class="font-normal text-slate-400">&lt;newsletter@thesizzle.com.au&gt;</span></div>
+                                <div id="preview-subtitle-header" class="text-xs italic text-slate-400 mt-0.5 truncate">Preview Text...</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="bg-slate-50 flex-grow overflow-y-auto p-4 sm:p-8 no-scrollbar">
+                        <div id="live-preview" class="newsletter-preview p-8 max-w-[600px] mx-auto bg-white shadow-sm border border-slate-200"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Tab: Review & Send -->
+            <div id="tab-review" class="tab-content space-y-6">
+                <div class="theme-surface p-6 rounded-xl shadow-sm border theme-border">
+                    <div class="flex justify-between items-center mb-4">
+                        <h2 class="text-lg font-semibold">Beehiiv Rich Text Output</h2>
+                        <div>
+                            <button id="btn-generate-rich" class="mr-2 theme-btn font-bold py-2 px-4 rounded-lg transition">Generate Rich Text</button>
+                            <button id="btn-copy-rich" class="bg-gray-800 text-gray-300 font-bold py-2 px-4 rounded-lg hover:bg-gray-700 border border-gray-600">Copy Rich Text</button>
+                        </div>
+                    </div>
+                    <div id="output-rich-text" class="rich-text-output w-full p-8 rounded-lg min-h-[400px] overflow-y-auto outline-none" contenteditable="false">
+                        <p class="text-gray-500 italic">Click "Generate Rich Text" to see content here...</p>
+                    </div>
+                </div>
+
+                <div class="bg-black rounded-xl p-4 shadow-2xl border border-gray-800">
+                    <div class="text-xs font-bold text-gray-500 uppercase mb-2 flex justify-between items-center">
+                        <span>Activity Log</span>
+                        <button id="btn-save-manual" class="text-indigo-400 hover:text-indigo-300 font-medium">Force Save</button>
+                    </div>
+                    <div id="status-log" class="h-32 overflow-y-auto text-green-400 font-mono text-[10px] space-y-1"></div>
+                </div>
+            </div>
+
+            <!-- Tab: Instagram -->
+            <div id="tab-instagram" class="tab-content space-y-6">
+                <div class="theme-surface p-6 rounded-xl shadow-sm border theme-border">
+                    <h2 class="text-lg font-semibold mb-4">Instagram Post Generator</h2>
+                    
+                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                        
+                        <!-- Left: Controls -->
+                        <div class="flex flex-col gap-6">
+                            <div class="space-y-4">
+                                <div>
+                                    <label class="block text-xs font-bold theme-text-muted uppercase mb-1">Headline</label>
+                                    <input type="text" id="insta-title" placeholder="Use subject line..." class="w-full p-2 theme-bg border theme-border rounded theme-text">
+                                </div>
+                                <div>
+                                    <label class="block text-xs font-bold theme-text-muted uppercase mb-1">Body Text</label>
+                                    <textarea id="insta-text" placeholder="Something cool in this edition..." class="w-full p-2 theme-bg border theme-border rounded theme-text h-24"></textarea>
+                                </div>
+                                <div>
+                                    <label class="block text-xs font-bold theme-text-muted uppercase mb-1">Background Image</label>
+                                    <input type="file" id="insta-bg-upload" accept="image/*" class="w-full text-xs theme-text-muted file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-gray-700 file:text-white hover:file:bg-gray-600">
+                                </div>
+                                <div>
+                                    <label class="block text-xs font-bold theme-text-muted uppercase mb-1">Image Opacity</label>
+                                    <input type="range" id="insta-bg-opacity" min="0" max="1" step="0.05" value="0.2" class="w-full accent-indigo-600">
+                                </div>
+                                <div class="border-t theme-border pt-4 mt-2">
+                                    <label class="block text-xs font-bold theme-text-muted uppercase mb-1">Corner Overlay Image</label>
+                                    <input type="file" id="insta-overlay-upload" accept="image/*" class="w-full text-xs theme-text-muted file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-gray-700 file:text-white hover:file:bg-gray-600">
+                                    <div class="mt-2">
+                                         <label class="block text-xs font-bold theme-text-muted uppercase mb-1">Overlay Opacity</label>
+                                         <input type="range" id="insta-overlay-opacity" min="0" max="1" step="0.05" value="1" class="w-full accent-indigo-600">
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="flex gap-4">
+                                <button id="btn-download-insta" class="bg-pink-600 text-white font-bold py-3 px-4 rounded-lg hover:bg-pink-500 transition w-full">📸 Download Image</button>
+                            </div>
+                        </div>
+
+                        <!-- Right: Canvas Preview -->
+                        <div class="flex items-center justify-center bg-gray-800 rounded-lg p-4 overflow-hidden">
+                            <!-- Wrapper for scaling -->
+                            <div style="transform: scale(0.35); transform-origin: top center; height: 520px;">
+                                <div id="insta-card" class="relative bg-white text-black flex flex-col items-center justify-center text-center overflow-hidden" style="width: 1080px; height: 1440px; font-family: 'Inter', sans-serif;">
+                                    
+                                    <!-- Background Layer -->
+                                    <div id="insta-bg-layer" class="absolute inset-0 z-0 bg-cover bg-center pointer-events-none" style="opacity: 0.2;"></div>
+                                    
+                                    <!-- Overlay Layer -->
+                                    <img id="insta-overlay-img" src="sizzle transparent.png" class="absolute bottom-6 right-6 w-32 h-auto z-20 pointer-events-none" style="display:block;" />
+                                    
+                                    <!-- Content Wrapper -->
+                                    <div class="relative z-10 p-16 flex flex-col items-center justify-center h-full w-full">
+                                        <h2 id="card-subject" class="text-8xl font-black leading-tight mb-16 max-w-4xl">Newsletter Subject</h2>
+                                        <p id="card-body" class="text-6xl font-medium leading-normal max-w-4xl text-gray-800">Check it out.</p>
+                                    </div>
+
+                                </div>
+                            </div>
+                        </div>
+
+                    </div>
+                </div>
+            </div>
+
+        </main>
+    </div>
+
+    <script>
+        const apiKey = ""; // Handled by environment
+        const DISCOURSE_API_KEY = '41dd1f8e6b732554a521993b042b23555b130b2d4929f3cc559b2f903303ae83';
+        const DISCOURSE_URL = 'https://forum.thesizzle.com.au';
+        const DISCOURSE_USERNAME = 'cameronwilson'; 
+        const DISCOURSE_CATEGORY_ID = 3; 
+        const PROXY_URL = 'https://corsproxy.io/?';
+
+        // Helper functions for themes
+        function setMode(mode) {
+            const html = document.documentElement;
+            html.classList.remove('dark', 'midnight', 'latte', 'dracula', 'matrix');
+            if (mode !== 'light') html.classList.add(mode);
+            localStorage.setItem('themeMode', mode);
+        }
+
+        function setFont(fontClass) {
+            document.body.classList.remove('font-modern', 'font-editorial', 'font-terminal');
+            document.body.classList.add(fontClass);
+            localStorage.setItem('themeFont', fontClass);
+        }
+
+        function setAccent(accentClass) {
+            const html = document.documentElement;
+            html.classList.remove('accent-pink', 'accent-teal', 'accent-orange', 'accent-purple', 'accent-green');
+            if (accentClass) html.classList.add(accentClass);
+            localStorage.setItem('themeAccent', accentClass);
+        }
+
+        // Global function for RTE formatting
+        function formatDoc(cmd, value = null) {
+            if (cmd === 'createLink') {
+                const url = prompt("Enter the URL:");
+                if (url) document.execCommand(cmd, false, url);
+            } else if (cmd === 'insertImage') {
+                const url = prompt("Enter the Image URL:");
+                if (url) document.execCommand(cmd, false, url);
+            } else {
+                document.execCommand(cmd, false, value);
+            }
+        }
+
+        // Variable to store posted topic URLs map: { 'news-1': 'url', ... }
+        let postedTopicUrls = {};
+
+        document.addEventListener('DOMContentLoaded', () => {
+            // Restore Theme Preferences
+            const savedMode = localStorage.getItem('themeMode');
+            if (savedMode) setMode(savedMode);
+            
+            const savedFont = localStorage.getItem('themeFont');
+            if (savedFont) setFont(savedFont);
+
+            const savedAccent = localStorage.getItem('themeAccent');
+            if (savedAccent) setAccent(savedAccent);
+
+            // Theme Dropdown Toggle
+            document.getElementById('btn-theme').addEventListener('click', (e) => {
+                e.stopPropagation();
+                document.getElementById('theme-dropdown').classList.toggle('show');
+            });
+            document.addEventListener('click', () => {
+                document.getElementById('theme-dropdown').classList.remove('show');
+            });
+
+            const singleInputIds = [
+                'subject', 'preview-text',
+                'news-1-headline', 'news-1-text', 'news-1-sizzle',
+                'news-2-headline', 'news-2-text', 'news-2-sizzle',
+                'news-3-headline', 'news-3-text', 'news-3-sizzle',
+                'oh-also-heading', 'oh-also-text',
+                'bargains-electronics', 'bargains-computing', 'bargains-mobile',
+                'links-au-text', 'links-row-text',
+                'intro-text',
+                'insta-title', 'insta-text' 
+            ];
+
+            const rteInputIds = [
+                'intro-text',
+                'news-1-text', 'news-2-text', 'news-3-text', 'oh-also-text',
+                'bargains-electronics', 'bargains-computing', 'bargains-mobile',
+                'links-au-text', 'links-row-text'
+            ];
+
+            const inputs = {};
+            // Gather standard inputs
+            singleInputIds.forEach(id => {
+                const camelId = id.replace(/-([a-z0-9])/g, (match, p1) => p1.toUpperCase());
+                inputs[camelId] = document.getElementById(id);
+            });
+            // Ensure preview text input is captured
+            inputs.previewText = document.getElementById('preview-text');
+            
+            // Insta Inputs
+            const instaInputs = {
+                title: document.getElementById('insta-title'),
+                text: document.getElementById('insta-text'),
+            };
+            
+            // Insta Background
+            const instaBgUpload = document.getElementById('insta-bg-upload');
+            const instaBgOpacity = document.getElementById('insta-bg-opacity');
+            const instaBgLayer = document.getElementById('insta-bg-layer');
+
+            // Insta Overlay
+            const instaOverlayUpload = document.getElementById('insta-overlay-upload');
+            const instaOverlayOpacity = document.getElementById('insta-overlay-opacity');
+            const instaOverlayImg = document.getElementById('insta-overlay-img');
+
+
+            // Handle background upload
+            if (instaBgUpload) {
+                instaBgUpload.addEventListener('change', (e) => {
+                    const file = e.target.files[0];
+                    if (file) {
+                        const reader = new FileReader();
+                        reader.onload = (e) => {
+                            instaBgLayer.style.backgroundImage = `url(${e.target.result})`;
+                        };
+                        reader.readAsDataURL(file);
+                    }
+                });
+            }
+
+            // Handle opacity slider
+            if (instaBgOpacity) {
+                instaBgOpacity.addEventListener('input', (e) => {
+                    instaBgLayer.style.opacity = e.target.value;
+                });
+            }
+            
+            // Handle Overlay upload
+            if (instaOverlayUpload) {
+                instaOverlayUpload.addEventListener('change', (e) => {
+                    const file = e.target.files[0];
+                    if (file) {
+                        const reader = new FileReader();
+                        reader.onload = (e) => {
+                            instaOverlayImg.src = e.target.result;
+                        };
+                        reader.readAsDataURL(file);
+                    }
+                });
+            }
+            
+            // Handle overlay opacity
+            if (instaOverlayOpacity) {
+                instaOverlayOpacity.addEventListener('input', (e) => {
+                    instaOverlayImg.style.opacity = e.target.value;
+                });
+            }
+
+            const buttons = {
+                generateRich: document.getElementById('btn-generate-rich'),
+                postDiscourse: document.getElementById('btn-post-discourse'),
+                copyRich: document.getElementById('btn-copy-rich'),
+                save: document.getElementById('btn-save-manual'),
+                clear: document.getElementById('btn-clear'),
+                downloadInsta: document.getElementById('btn-download-insta'),
+                tabs: document.querySelectorAll('.tab-btn'),
+                backup: document.getElementById('btn-backup'),
+                restore: document.getElementById('btn-restore')
+            };
+            
+            // Restore functionality
+            const fileRestore = document.getElementById('file-restore');
+
+            const outputs = {
+                richText: document.getElementById('output-rich-text'),
+                preview: document.getElementById('live-preview'),
+                discoursePreviews: document.getElementById('discourse-previews'),
+                previewSubject: document.getElementById('preview-subject-header'),
+                previewSubtitle: document.getElementById('preview-subtitle-header'),
+                log: document.getElementById('status-log'),
+                discourseLog: document.getElementById('discourse-status-log'),
+                indicator: document.getElementById('autosave-indicator')
+            };
+
+            const SLACK_URL = "https://the-sizzle.slack.com/channels/sizzleedition";
+            const FORUM_URL = "https://forum.thesizzle.com.au/c/topic-of-the-day/7";
+            
+            // --- Helper Functions ---
+            
+            function applyData(data) {
+                singleInputIds.forEach(id => {
+                    const el = document.getElementById(id);
+                    if (el && data[id] !== undefined) {
+                        if (rteInputIds.includes(id)) {
+                            el.innerHTML = data[id];
+                        } else {
+                            el.value = data[id];
+                        }
+                    }
+                });
+                if (data.postedTopicUrls) {
+                    postedTopicUrls = data.postedTopicUrls;
+                }
+                
+                // Updates
+                if(typeof updateSubject === 'function') updateSubject();
+                if(typeof updatePreviewText === 'function') updatePreviewText();
+                updatePreview();
+                updateDiscoursePreview();
+                updateStatusIndicators();
+                updateInstaCard();
+            }
+
+            // --- Counter & Ghost Input Logic ---
+            function setupGhostInput(inputId, ghostId, counterId, limit) {
+                const input = document.getElementById(inputId);
+                const ghost = document.getElementById(ghostId);
+                const counter = document.getElementById(counterId);
+                
+                const update = () => {
+                    if (!input || !ghost || !counter) return;
+                    
+                    const text = input.value;
+                    const len = text.length;
+                    
+                    counter.textContent = `${len}/${limit}`;
+                    if (len > limit) {
+                        counter.classList.add('text-red-500', 'font-bold');
+                        counter.classList.remove('text-slate-500'); // Light mode
+                        counter.classList.remove('theme-text-muted');
+                    } else {
+                        counter.classList.remove('text-red-500', 'font-bold');
+                        counter.classList.add('text-slate-500'); // Light mode default
+                        counter.classList.add('theme-text-muted'); // Theme awareness
+                    }
+
+                    const safeText = text.slice(0, limit);
+                    const overText = text.slice(limit);
+                    const escape = (str) => str.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+                    
+                    if (overText) {
+                        ghost.innerHTML = `${escape(safeText)}<span class="text-red-500 font-medium">${escape(overText)}</span>`;
+                    } else {
+                        ghost.innerHTML = escape(text);
+                    }
+                    ghost.scrollLeft = input.scrollLeft;
+                };
+
+                if (input) {
+                    input.addEventListener('input', update);
+                    input.addEventListener('scroll', () => { ghost.scrollLeft = input.scrollLeft; });
+                }
+                
+                return update;
+            }
+
+            const updateSubject = setupGhostInput('subject', 'subject-ghost', 'subject-counter', 70);
+            const updatePreviewText = setupGhostInput('preview-text', 'preview-ghost', 'preview-counter', 150);
+
+            // --- Logic ---
+            function debounce(func, wait) {
+                let timeout;
+                return (...args) => {
+                    clearTimeout(timeout);
+                    timeout = setTimeout(() => func(...args), wait);
+                };
+            }
+
+            const saveData = () => {
+                const data = {};
+                singleInputIds.forEach(id => { 
+                    const el = document.getElementById(id);
+                    if (el) {
+                        data[id] = rteInputIds.includes(id) ? el.innerHTML : el.value;
+                    }
+                });
+                data.postedTopicUrls = postedTopicUrls;
+                localStorage.setItem('newsletterHubData', JSON.stringify(data));
+                outputs.indicator.textContent = 'All changes saved';
+                updatePreview();
+                updateDiscoursePreview();
+                updateStatusIndicators();
+            };
+
+            const debouncedSave = debounce(saveData, 800);
+
+            function loadData() {
+                const saved = localStorage.getItem('newsletterHubData');
+                if (saved) applyData(JSON.parse(saved));
+            }
+            
+            // Backup functionality
+            buttons.backup.addEventListener('click', () => {
+                const data = {};
+                singleInputIds.forEach(id => { 
+                    const el = document.getElementById(id);
+                    if (el) {
+                        data[id] = rteInputIds.includes(id) ? el.innerHTML : el.value;
+                    }
+                });
+                data.postedTopicUrls = postedTopicUrls;
+                
+                const blob = new Blob([JSON.stringify(data, null, 2)], {type: 'application/json'});
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `sizzle-backup-${new Date().toISOString().split('T')[0]}.json`;
+                a.click();
+                URL.revokeObjectURL(url);
+                logMessage("Backup downloaded.");
+            });
+            
+            // Restore functionality
+            buttons.restore.addEventListener('click', () => {
+                fileRestore.click();
+            });
+            
+            fileRestore.addEventListener('change', (e) => {
+                const file = e.target.files[0];
+                if (!file) return;
+                
+                const reader = new FileReader();
+                reader.onload = (event) => {
+                    try {
+                        const data = JSON.parse(event.target.result);
+                        applyData(data);
+                        saveData(); // Persist restored data
+                        logMessage("Backup restored successfully.");
+                        // Reset input so same file can be selected again if needed
+                        fileRestore.value = '';
+                    } catch(err) {
+                        alert('Invalid backup file');
+                        console.error(err);
+                    }
+                };
+                reader.readAsText(file);
+            });
+
+
+            function clearData() {
+                if (!confirm('Clear everything?')) return;
+                singleInputIds.forEach(id => {
+                    const el = document.getElementById(id);
+                    if(el) {
+                         if (rteInputIds.includes(id)) el.innerHTML = '';
+                         else el.value = '';
+                    }
+                });
+                postedTopicUrls = {};
+                localStorage.removeItem('newsletterHubData');
+                outputs.richText.innerHTML = '<p class="text-slate-500 italic">Click "Generate Rich Text" to see content here...</p>';
+                if(updateSubject) updateSubject();
+                if(updatePreviewText) updatePreviewText();
+                updatePreview();
+                updateDiscoursePreview();
+                updateStatusIndicators();
+                updateInstaCard();
+                logMessage("Workspace cleared.");
+            }
+
+            // --- Navigation ---
+            buttons.tabs.forEach(btn => {
+                btn.addEventListener('click', () => {
+                    const targetTab = btn.getAttribute('data-tab');
+                    buttons.tabs.forEach(b => b.classList.remove('active'));
+                    btn.classList.add('active');
+                    document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+                    document.getElementById(targetTab).classList.add('active');
+                    if(targetTab === 'tab-preview') updatePreview();
+                    if(targetTab === 'tab-discourse') updateDiscoursePreview();
+                    if(targetTab === 'tab-instagram') updateInstaCard();
+                });
+            });
+
+            // Listeners for inputs
+            singleInputIds.forEach(id => {
+                const el = document.getElementById(id);
+                if (el) {
+                    el.addEventListener('input', () => {
+                        outputs.indicator.textContent = 'Saving...';
+                        debouncedSave();
+                    });
+                }
+            });
+
+            rteInputIds.forEach(id => {
+                const el = document.getElementById(id);
+                if (el) {
+                    el.addEventListener('input', () => {
+                        outputs.indicator.textContent = 'Saving...';
+                        debouncedSave();
+                    });
+                }
+            });
+            
+            // Listeners for Insta live preview
+            instaInputs.title.addEventListener('input', updateInstaCard);
+            instaInputs.text.addEventListener('input', updateInstaCard);
+            // Also update when subject changes if using fallback
+            document.getElementById('subject').addEventListener('input', updateInstaCard);
+
+            
+            // --- Helper Functions ---
+            
+            function updateStatusIndicators() {
+                const map = {
+                    'status-news-1': 'news-1',
+                    'status-news-2': 'news-2',
+                    'status-news-3': 'news-3',
+                    'status-oh-also': 'oh-also',
+                    'status-leftovers': 'leftovers'
+                };
+                
+                for (const [uiId, key] of Object.entries(map)) {
+                    const el = document.getElementById(uiId);
+                    if (el) {
+                        const url = postedTopicUrls[key];
+                        if (url) {
+                            el.innerHTML = `✅ Posted: <a href="${url}" target="_blank" class="text-indigo-400 hover:text-indigo-300">View Topic</a>`;
+                        } else {
+                            el.innerHTML = '';
+                        }
+                    }
+                }
+            }
+
+            function prepareDiscoursePosts() {
+                const posts = [];
+                // 1. News Topics
+                [1, 2, 3].forEach(n => {
+                    const title = inputs[`news${n}Headline`].value.trim();
+                    const bodyText = inputs[`news${n}Text`].innerHTML.trim();
+                    const sizzleComment = inputs[`news${n}Sizzle`].value.trim();
+                    
+                    if (title && (bodyText && bodyText !== '<br>')) {
+                        let fullBody = bodyText;
+                        if(sizzleComment) {
+                            fullBody += `<br><br><strong>The Sizzle:</strong> ${sizzleComment}`;
+                        }
+                        posts.push({ id: `news-${n}`, title, raw: fullBody });
+                    }
+                });
+
+                // 2. Oh, Also
+                const ohAlsoTitle = inputs.ohAlsoHeading.value.trim();
+                const ohAlsoRaw = inputs.ohAlsoText.innerHTML.trim();
+                if (ohAlsoTitle && (ohAlsoRaw && ohAlsoRaw !== '<br>')) {
+                    posts.push({ id: 'oh-also', title: ohAlsoTitle, raw: ohAlsoRaw });
+                }
+
+                // 3. Leftovers
+                const auHtml = inputs.linksAuText.innerHTML.trim();
+                const rowHtml = inputs.linksRowText.innerHTML.trim();
+                let leftoversBody = "";
+                if ((auHtml && auHtml !== '<br>') || (rowHtml && rowHtml !== '<br>')) {
+                    if (auHtml && auHtml !== '<br>') {
+                        leftoversBody += `<strong>Australia</strong><br>${auHtml}<br><br>`;
+                    }
+                    if (rowHtml && rowHtml !== '<br>') {
+                        leftoversBody += `<strong>Rest of the world</strong><br>${rowHtml}`;
+                    }
+                    if (leftoversBody) {
+                        const now = new Date();
+                        const day = String(now.getDate()).padStart(2, '0');
+                        const month = String(now.getMonth() + 1).padStart(2, '0');
+                        const year = String(now.getFullYear()).slice(-2);
+                        const leftoversTitle = `Today's Leftovers [${day}/${month}/${year}]`;
+
+                        posts.push({ id: 'leftovers', title: leftoversTitle, raw: leftoversBody });
+                    }
+                }
+                return posts;
+            }
+
+            function updateDiscoursePreview() {
+                const posts = prepareDiscoursePosts();
+                const container = outputs.discoursePreviews;
+                container.innerHTML = '';
+                
+                if (posts.length === 0) {
+                    container.innerHTML = '<div class="text-center theme-text-muted italic py-8">No content to post yet. Fill in some news or links!</div>';
+                    return;
+                }
+
+                posts.forEach(post => {
+                    const card = document.createElement('div');
+                    card.className = 'theme-surface p-4 rounded-lg border theme-border';
+                    card.innerHTML = `
+                        <h3 class="font-bold text-indigo-400 border-b theme-border pb-2 mb-3">${post.title}</h3>
+                        <div class="prose prose-sm prose-invert max-w-none theme-text">
+                            ${post.raw}
+                        </div>
+                    `;
+                    container.appendChild(card);
+                });
+            }
+
+            function generateNewsletterBodyHTML() {
+                const separator = "<p>———————————————————————————</p>";
+                const getForumLink = (id) => postedTopicUrls[id] || FORUM_URL;
+                const getDiscussPara = (id) => `<p>Discuss in the Sizzle <a href="${SLACK_URL}">Slack</a> or <a href="${getForumLink(id)}">forum</a>.</p>`;
+
+                let introHtml = inputs.introText.innerHTML.trim();
+                if (introHtml && introHtml !== '<br>') {
+                    // No separator here
+                    introHtml = `${introHtml}`;
+                } else {
+                    introHtml = '';
+                }
+
+                const newsContent = [1, 2, 3].map(n => {
+                    const hInput = inputs[`news${n}Headline`];
+                    const tInput = inputs[`news${n}Text`];
+                    const sInput = inputs[`news${n}Sizzle`];
+                    
+                    if (!hInput || !tInput) return '';
+                    
+                    const h = hInput.value.trim();
+                    const t = tInput.innerHTML.trim();
+                    const s = sInput ? sInput.value.trim() : '';
+
+                    if (!h && (t === '' || t === '<br>')) return '';
+
+                    let footerHtml = '';
+                    if (s !== '') {
+                        footerHtml += `<p><strong>The Sizzle: </strong>${s}</p>`;
+                    }
+                    footerHtml += getDiscussPara(`news-${n}`);
+
+                    return `<h3><strong>${h}</strong></h3><p>${t}</p>${footerHtml}`;
+                }).filter(Boolean).join('');
+
+                const auHtml = inputs.linksAuText.innerHTML.trim();
+                const rowHtml = inputs.linksRowText.innerHTML.trim();
+
+                let leftovers = '';
+                const hasAu = auHtml && auHtml !== '<br>';
+                const hasRow = rowHtml && rowHtml !== '<br>';
+
+                if (hasAu || hasRow) {
+                     leftovers += `<h1><strong>Leftovers</strong></h1>`;
+                     if (hasAu) {
+                        leftovers += `<p><strong>Australia:</strong></p>${auHtml}`;
+                     }
+                     if (hasRow) {
+                        leftovers += `<p><strong>Rest of the world:</strong></p>${rowHtml}`;
+                     }
+                     leftovers += `<p><br>${getDiscussPara('leftovers').replace('<p>','')}`; 
+                }
+
+                let ohAlso = '';
+                const ohAlsoHead = inputs.ohAlsoHeading.value.trim();
+                const ohAlsoBody = inputs.ohAlsoText.innerHTML.trim();
+                
+                if (ohAlsoHead || (ohAlsoBody && ohAlsoBody !== '<br>')) {
+                    ohAlso += `${separator}`;
+                    ohAlso += `<h1><strong>Oh, Also</strong></h1>`;
+                    if (ohAlsoHead) ohAlso += `<h3><strong>${ohAlsoHead.toUpperCase()}</strong></h3>`;
+                    if (ohAlsoBody) ohAlso += `<p>${ohAlsoBody}</p>`;
+                    ohAlso += getDiscussPara('oh-also');
+                }
+
+                const elecHtml = inputs.bargainsElectronics ? inputs.bargainsElectronics.innerHTML.trim() : '';
+                const compHtml = inputs.bargainsComputing ? inputs.bargainsComputing.innerHTML.trim() : '';
+                const mobHtml = inputs.bargainsMobile ? inputs.bargainsMobile.innerHTML.trim() : '';
+                
+                let bargains = '';
+                const hasElec = elecHtml && elecHtml !== '<br>';
+                const hasComp = compHtml && compHtml !== '<br>';
+                const hasMob = mobHtml && mobHtml !== '<br>';
+
+                if (hasElec || hasComp || hasMob) {
+                    bargains += `${separator}`;
+                    bargains += `<h1><strong>Bargains</strong></h1>`;
+                    if (hasElec) {
+                        bargains += `<p><em><strong>Electrical & Electronics</strong></em></p>${elecHtml}`;
+                    }
+                    if (hasComp) {
+                        bargains += `<p><em><strong>Computing</strong></em></p>${compHtml}`;
+                    }
+                    if (hasMob) {
+                        bargains += `<p><em><strong>Mobile</strong></em></p>${mobHtml}`;
+                    }
+                    bargains += `${separator}`;
+                }
+
+                return `${introHtml}<h1><strong>The News</strong></h1>${newsContent}${leftovers}${ohAlso}${bargains}`.trim();
+            }
+
+            function generateFullHTML() {
+                const subjectVal = inputs.subject.value.trim();
+                const separator = "<p>———————————————————————————</p>";
+                
+                let html = `<h1><strong>${subjectVal || 'Newsletter Subject'}</strong></h1>`;
+                html += separator;
+                html += generateNewsletterBodyHTML();
+                return html;
+            }
+
+            function updatePreview() {
+                if (outputs.preview) {
+                    outputs.previewSubject.textContent = inputs.subject.value.trim() || 'No Subject Defined';
+                    if (outputs.previewSubtitle) {
+                        outputs.previewSubtitle.textContent = inputs.previewText.value.trim() || 'No Preview Text...';
+                    }
+                    outputs.preview.innerHTML = generateNewsletterBodyHTML();
+                }
+            }
+
+            // --- INSTAGRAM LOGIC ---
+            function updateInstaCard() {
+                // Subject
+                const customTitle = instaInputs.title.value.trim();
+                document.getElementById('card-subject').textContent = customTitle || inputs.subject.value.trim() || 'Newsletter Subject';
+                
+                // Body
+                const customBody = instaInputs.text.value.trim();
+                const cardBody = document.getElementById('card-body');
+                if (customBody) {
+                    cardBody.textContent = customBody;
+                    cardBody.style.display = 'block';
+                } else {
+                    cardBody.style.display = 'none';
+                }
+            }
+
+            buttons.downloadInsta.addEventListener('click', () => {
+                const card = document.getElementById('insta-card');
+                html2canvas(card, { scale: 1 }).then(canvas => {
+                    const link = document.createElement('a');
+                    link.download = 'sizzle-instagram.png';
+                    link.href = canvas.toDataURL();
+                    link.click();
+                });
+            });
+
+            function logMessage(msg, err = false) {
+                const timestamp = new Date().toLocaleTimeString();
+                
+                // Helper to create entry
+                const createEntry = () => {
+                    const entry = document.createElement('div');
+                    entry.textContent = `[${timestamp}] ${msg}`;
+                    entry.className = err ? 'text-red-400' : 'text-green-400';
+                    return entry;
+                };
+
+                // Append to main log
+                if (outputs.log) outputs.log.prepend(createEntry());
+                
+                // Append to discourse log
+                if (outputs.discourseLog) outputs.discourseLog.prepend(createEntry());
+            }
+
+            // --- Button Actions ---
+
+            buttons.generateRich.addEventListener('click', () => {
+                try {
+                    outputs.richText.innerHTML = generateFullHTML();
+                    logMessage("Rich Text generated successfully.");
+                } catch (e) { logMessage(`Error: ${e.message}`, true); }
+            });
+
+            buttons.copyRich.addEventListener('click', () => {
+                if (outputs.richText.innerHTML.includes('Click "Generate')) return;
+                const range = document.createRange();
+                range.selectNode(outputs.richText);
+                const selection = window.getSelection();
+                selection.removeAllRanges();
+                selection.addRange(range);
+                try {
+                    if (document.execCommand('copy')) {
+                        const original = buttons.copyRich.textContent;
+                        buttons.copyRich.textContent = 'Copied!';
+                        setTimeout(() => buttons.copyRich.textContent = original, 2000);
+                        logMessage("Content copied to clipboard.");
+                    }
+                } catch (err) { logMessage("Copy Error: " + err, true); }
+                selection.removeAllRanges();
+            });
+
+            buttons.postDiscourse.addEventListener('click', async () => {
+                const posts = prepareDiscoursePosts();
+                if (!posts.length) return logMessage('Nothing to post.', true);
+
+                buttons.postDiscourse.classList.add('loading');
+                
+                // 1. Post to Discourse
+                for (const p of posts) {
+                    try {
+                        const res = await fetch(`${PROXY_URL}${DISCOURSE_URL}/posts.json`, {
+                            method: 'POST',
+                            headers: { 
+                                'Content-Type': 'application/json', 
+                                'Api-Key': DISCOURSE_API_KEY, 
+                                'Api-Username': DISCOURSE_USERNAME 
+                            },
+                            body: JSON.stringify({ 
+                                title: p.title, 
+                                raw: p.raw, 
+                                category: DISCOURSE_CATEGORY_ID 
+                            })
+                        });
+                        if (res.ok) {
+                            const data = await res.json();
+                            const topicUrl = `${DISCOURSE_URL}/t/${data.topic_slug}/${data.topic_id}`;
+                            postedTopicUrls[p.id] = topicUrl;
+                            logMessage(`Posted topic: ${p.title} -> ${topicUrl}`);
+                        } else {
+                            const errData = await res.json();
+                            const errMsg = errData.errors ? errData.errors.join(', ') : res.statusText;
+                            throw new Error(errMsg);
+                        }
+                    } catch (e) {
+                        let msg = e.message;
+                        if (msg === 'Failed to fetch') {
+                            msg = 'Network Error (CORS). The forum blocked the request. You may need a CORS extension or to run this from the same domain.';
+                        }
+                        logMessage(`Discourse Error (${p.title}): ${msg}`, true);
+                    }
+                }
+                
+                // Save state and update UI
+                saveData(); // This persists postedTopicUrls
+                updateStatusIndicators();
+                updatePreview(); // Refreshes links in preview
+                
+                // Refresh Rich Text output if generated
+                if(outputs.richText && outputs.richText.offsetParent !== null && !outputs.richText.innerText.includes('Click "Generate')) {
+                    outputs.richText.innerHTML = generateFullHTML();
+                }
+
+                buttons.postDiscourse.classList.remove('loading');
+            });
+
+            buttons.save.addEventListener('click', saveData);
+            buttons.clear.addEventListener('click', clearData);
+            loadData();
+        });
+    </script>
+</body>
+</html>
